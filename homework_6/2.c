@@ -1,33 +1,41 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
 #include <time.h>
-#include <signal.h>
 
-void createProcesses(int number_of_generations, pid_t parent_pid, int number_of_descendants, struct timespec startTime) {
-        int i = 0;
-        if (number_of_generations != 0) {
-                while (i < number_of_descendants) {
-                clock_gettime(CLOCK_MONOTONIC, &startTime);
-                        pid_t child_pid = fork();
-                        i++;
-                        sleep(3);
-                        if (child_pid == 0) {
-                          printf("pid: %d, ppid: %d, msec: %ld\n", getpid(), parent_pid, startTime.tv_nsec / 1000000);
-                        }
-                        if (parent_pid != getpid()) {
-                          number_of_generations--;              
-                                createProcesses(number_of_generations, getpid(), number_of_descendants, startTime);
-                                break;
-                        }
-                }
-        }
-}
+static int createAndPrintProcess(int id, int old_id, int i, int number_of_generations, int number_of_descendants, int parent);
 
 int main(int argc, char *argv[]) {
-    struct timespec startTime;
-    clock_gettime(CLOCK_MONOTONIC, &startTime);
-    pid_t pid = getpid();
-	printf("Родитель: pid: %d, ppid: %d, msec: %ld\n", pid, getppid(), startTime.tv_nsec / 1000000);
-	createProcesses(atoi(argv[1]), getpid(), atoi(argv[2]), startTime);
+  int first_argv = *argv[1] - '0';
+  int second_argv = *argv[2] - '0';
+  return createAndPrintProcess(1, 1, 0, first_argv, second_argv, getppid());
+}
+
+static int createAndPrintProcess(int id, int old_id, int i, int number_of_generations, int number_of_descendants, int parent) {
+  if (i <= number_of_generations) {
+    for (int j = 0; j < number_of_descendants; j++) {
+      pid_t pid = fork();
+      if (pid == -1) {
+        return 1;
+      } else if (pid == 0) {
+        old_id = id + 1;
+        parent = getppid();
+        return createAndPrintProcess(id * number_of_descendants + 1, old_id, i + 1,
+                                number_of_generations, number_of_descendants, parent);
+      }
+      id++;
+    }
+    while(1) {
+        time_t currentTime;
+        time(&currentTime);
+        struct tm *localTime = localtime(&currentTime);
+        int hours = localTime -> tm_hour;
+        int minutes  = localTime -> tm_min;
+        int seconds = localTime -> tm_sec;
+        sleep(old_id * 200 / 1000);
+        int mseconds = 1000 * (hours * 60 * 60 + minutes * 60 + seconds);
+        printf("Process number: %d, PID:%d, PPID:%d, msec: %d\n", old_id,
+           getpid(), parent, mseconds);
+    }
+  }
+  return 0;
 }
