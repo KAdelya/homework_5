@@ -28,12 +28,12 @@ static int createAndPrintProcess(int id, int old_id, int i, int number_of_genera
         time_t currentTime;
         time(&currentTime);
         struct tm *localTime = localtime(&currentTime);
+        struct timespec startTime;
+        clock_gettime(CLOCK_REALTIME, &startTime);
+        int msec = startTime.tv_nsec / 1000000;
         int hours = localTime -> tm_hour;
         int minutes  = localTime -> tm_min;
         int seconds = localTime -> tm_sec;
-        struct timespec startTime;
-        clock_gettime(CLOCK_MONOTONIC, &startTime);
-        int msec = startTime.tv_nsec / 1000000;
         usleep(old_id * 200 * 1000);
         int mseconds = 1000 * (hours * 60 * 60 + minutes * 60 + seconds) + msec;
         printf("Process number: %d, PID:%d, PPID:%d, msec: %d\n", old_id,
